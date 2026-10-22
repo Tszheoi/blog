@@ -40,16 +40,15 @@ googleAnalytics = ""
   hideSummary = false
   showtoc = true
 
-  homeInfoParams = {
-    Title = "Hi，我是 Pelakai",
-    Content = "记录一些想法、项目，和偶尔的折腾。"
-  }
+[params.homeInfoParams]
+  Title = "Hi，我是 Pelakai"
+  Content = "记录一些想法、项目，和偶尔的折腾。"
 
-  [params.assets]
-    favicon = ""
+[params.assets]
+  favicon = ""
 
-  [params.profileMode]
-    enabled = false
+[params.profileMode]
+  enabled = false
 
 [[params.socialIcons]]
   name = "github"
