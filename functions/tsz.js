@@ -101,7 +101,19 @@ function env(ctx) {
     token: e.GITHUB_TOKEN || '',
     repo: e.GITHUB_REPO || 'pelakai/blog',
     branch: e.GITHUB_BRANCH || 'main',
+    deployHook: e.DEPLOY_HOOK || '',
   };
+}
+
+// 触发 Cloudflare Pages 重新构建（部署钩子）
+async function triggerDeploy(cfg) {
+  if (!cfg.deployHook) return false;
+  try {
+    const r = await fetch(cfg.deployHook, { method: 'POST' });
+    return r.ok;
+  } catch (e) {
+    return false;
+  }
 }
 
 // ---------------- GitHub API ----------------
@@ -597,7 +609,8 @@ export async function onRequest(ctx) {
           if (old) await ghDelete(cfg, oldPath, `rename: ${title}`, old.sha);
         }
 
-        return json({ ok: true, path: newPath });
+        const deployed = await triggerDeploy(cfg);
+        return json({ ok: true, path: newPath, deploy: deployed });
       }
 
       if (action === 'delete') {
@@ -606,7 +619,8 @@ export async function onRequest(ctx) {
         const rec = await ghGet(cfg, path);
         if (!rec) return json({ ok: false, error: '文件不存在' }, 404);
         await ghDelete(cfg, path, 'delete post', rec.sha);
-        return json({ ok: true });
+        const deployed = await triggerDeploy(cfg);
+        return json({ ok: true, deploy: deployed });
       }
 
       if (action === 'upload') {
