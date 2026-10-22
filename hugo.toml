@@ -1,0 +1,81 @@
+baseURL = "https://blog.tszheoi-law.top/"
+languageCode = "zh-cn"
+defaultContentLanguage = "zh"
+title = "Pelakai"
+theme = "PaperMod"
+
+enableRobotsTXT = true
+buildDrafts = false
+buildFuture = false
+buildExpired = false
+pagination.pagerSize = 12
+googleAnalytics = ""
+
+[minify]
+  disableXML = true
+  minifyOutput = true
+
+[params]
+  env = "production"
+  title = "Pelakai"
+  description = "记录一些想法、项目，和偶尔的折腾"
+  keywords = ["博客", "Pelakai", "记录"]
+  author = "Pelakai"
+  DateFormat = "2006-01-02"
+  defaultTheme = "auto"
+  disableThemeToggle = false
+
+  ShowReadingTime = true
+  ShowShareButtons = false
+  ShowPostNavLinks = true
+  ShowBreadCrumbs = true
+  ShowCodeCopyButtons = true
+  ShowRssButtonInSectionTermList = true
+  ShowFullTextinRSS = false
+  ShowToc = true
+  TocOpen = false
+  ShowWordCount = true
+  comments = false
+  hidemeta = false
+  hideSummary = false
+  showtoc = true
+
+  homeInfoParams = {
+    Title = "Hi，我是 Pelakai",
+    Content = "记录一些想法、项目，和偶尔的折腾。"
+  }
+
+  [params.assets]
+    favicon = ""
+
+  [params.profileMode]
+    enabled = false
+
+[[params.socialIcons]]
+  name = "github"
+  url = "https://github.com/pelakai"
+
+[[params.socialIcons]]
+  name = "email"
+  url = "mailto:pelakai@mail.tszheoi-law.top"
+
+[[menu.main]]
+  identifier = "posts"
+  name = "文章"
+  url = "/posts/"
+  weight = 10
+
+[[menu.main]]
+  identifier = "tags"
+  name = "标签"
+  url = "/tags/"
+  weight = 20
+
+[[menu.main]]
+  identifier = "archives"
+  name = "归档"
+  url = "/archives/"
+  weight = 30
+
+[outputs]
+  home = ["HTML", "RSS", "JSON"]
