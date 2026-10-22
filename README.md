@@ -31,3 +31,4 @@ functions/tsz.js       后台服务（Cloudflare Pages Function）
   - `GITHUB_BRANCH` = `main`
 
 主题不在仓库里，构建时自动克隆最新版。
+> 构建提示：Hugo 版本必须 ≥ 0.158.0（使用 0.168.0），否则 PaperMod 无法构建。
