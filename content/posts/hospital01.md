@@ -1,6 +1,6 @@
 ---
 title: "离别、再叙"
-date: 2026-10-23
+date: 2026-07-13
 draft: false
 tags: ["在医院工作的人", "01-再叙"]
 categories: ["《在医院工作的人》"]
