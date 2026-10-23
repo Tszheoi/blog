@@ -1,10 +1,11 @@
 ---
 title: "About Sinopharm"
 date: 2026-02-10
-draft: true
+draft: false
 tags: ["Sinopharm", "岗位分析"]
 categories: ["Sinopharm"]
 ---
+
 
 
 
@@ -41,5 +42,6 @@ categories: ["Sinopharm"]
 
 - Link：<https://pan.quark.cn/s/299e753d9b88>
 - Password：`b3S4`
+
 
 
