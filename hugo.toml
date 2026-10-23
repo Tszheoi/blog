@@ -42,7 +42,7 @@ googleAnalytics = ""
 
 [params.homeInfoParams]
   Title = "Hi，我是 Pelakai"
-  Content = "记录一些想法、项目，和偶尔的折腾。"
+  Content = "pelakai@mail.tszheoi-law.top"
 
 [params.assets]
   favicon = ""
