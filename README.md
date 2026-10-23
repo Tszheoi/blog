@@ -1,4 +1,4 @@
-﻿# Pelakai 博客
+# Pelakai 博客
 
 基于 Hugo + PaperMod 的静态博客。
 
@@ -32,3 +32,5 @@ functions/tsz.js       后台服务（Cloudflare Pages Function）
 
 主题不在仓库里，构建时自动克隆最新版。
 > 构建提示：Hugo 版本必须 ≥ 0.158.0（使用 0.168.0），否则 PaperMod 无法构建。
+
+<!-- rebuild trigger: 2026-10-23 16:11:05 -->
