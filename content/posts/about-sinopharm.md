@@ -1,13 +1,11 @@
 ---
 title: "About Sinopharm"
-date: 2026-02-10
+date: 2026-02-10T22:00:00+08:00
 draft: false
 tags: ["Sinopharm", "岗位分析"]
-categories: ["Sinopharm"]
+categories: ["《在医院工作的人》"]
+summary: "关于 Sinopharm 的岗位分析，把各分析者的思考过程分为主观分析、被动分析、客观分析三部分。"
 ---
-
-
-
 
 ## 关于 Sinopharm 的岗位分析
 
@@ -42,6 +40,3 @@ categories: ["Sinopharm"]
 
 - Link：<https://pan.quark.cn/s/299e753d9b88>
 - Password：`b3S4`
-
-
-
