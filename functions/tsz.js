@@ -205,6 +205,31 @@ function slugify(s) {
   return base || 'post-' + Date.now();
 }
 
+function sanitizeDir(raw) {
+  const segs = String(raw || '').split('/');
+  const out = [];
+  for (let s of segs) {
+    s = s.trim().replace(/[\\:*?"<>|]/g, '').replace(/^\.+/, '').replace(/\s+/g, '-');
+    if (s) out.push(s);
+  }
+  return out.join('/');
+}
+
+async function ensureIndexes(cfg, dir) {
+  if (!dir) return;
+  const segs = dir.split('/');
+  for (let i = 1; i <= segs.length; i++) {
+    const p = POSTS_DIR + '/' + segs.slice(0, i).join('/') + '/_index.md';
+    try {
+      const got = await ghGet(cfg, p);
+      if (!got) {
+        const title = segs[i - 1].replace(/-/g, ' ');
+        await ghPut(cfg, p, '---\ntitle: "' + title + '"\n---\n', 'mkdir: ' + title);
+      }
+    } catch (e) { /* 忽略 */ }
+  }
+}
+
 function nowIso() {
   // 用北京时间
   const d = new Date(Date.now() + 8 * 3600 * 1000);
@@ -237,6 +262,9 @@ input,textarea,button,select{font-family:inherit;font-size:14px}
 .panel{background:#141922;border:1px solid #1e2531;border-radius:12px;padding:14px}
 .panel h3{font-size:13px;color:#8b93a7;margin:0 0 10px;font-weight:600;letter-spacing:.03em}
 .item{padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;border:1px solid transparent;margin-bottom:4px}
+.folder{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;margin:6px 0 4px;border-radius:8px;background:#101722;border:1px solid #1e2531;color:#c3cad8;font-size:13px;cursor:pointer;font-weight:600}
+.folder:hover{background:#161e2b}
+.folder.on{border-color:#2563eb;color:#fff}
 .item:hover{background:#1a2029}
 .item.on{background:#1e2b3f;border-color:#2f4a6e}
 .item .t{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -286,7 +314,10 @@ const ADMIN_HTML = `<!DOCTYPE html><html lang="zh-CN"><head>
     <div class="panel">
       <div class="row" style="justify-content:space-between;margin-bottom:10px">
         <h3 style="margin:0">文章（<span id="cnt">0</span>）</h3>
-        <button class="btn sm" onclick="newPost()">+ 新建</button>
+        <div class="row" style="gap:6px">
+          <button class="btn sm" onclick="newPost()">+ 文章</button>
+          <button class="btn ghost sm" onclick="newFolder()">+ 文件夹</button>
+        </div>
       </div>
       <div id="list"></div>
     </div>
@@ -316,6 +347,12 @@ const ADMIN_HTML = `<!DOCTYPE html><html lang="zh-CN"><head>
             <label>分类（逗号分隔）</label>
             <input type="text" id="f-cats" placeholder="随笔">
           </div>
+        </div>
+        <div class="field">
+          <label>文件夹（留空 = 根目录，用 / 分层）</label>
+          <input type="text" id="f-dir" placeholder="如 技术/网络" list="dirlist">
+          <datalist id="dirlist"></datalist>
+          <div class="hint">改了文件夹 = 文章移动到新位置（旧链接会失效）</div>
         </div>
         <div class="field">
           <label class="chk"><input type="checkbox" id="f-draft"> 草稿（不发布）</label>
@@ -350,23 +387,63 @@ function post(data){return fetch('/tsz',{method:'POST',headers:{'content-type':'
 
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
+var folders = [];
+var currentDir = '';
+
 function load(){
   api('list').then(function(j){
     posts = j.posts || [];
+    folders = j.folders || [];
     document.getElementById('cnt').textContent = posts.length;
+
+    var dl = document.getElementById('dirlist');
+    if (dl) { dl.innerHTML = folders.map(function(f){ return '<option value="'+esc(f.path)+'">'; }).join(''); }
+
+    var groups = {};
+    posts.forEach(function(p){ var d = p.dir || ''; (groups[d] = groups[d] || []).push(p); });
+    var keys = Object.keys(groups).sort(function(a,b){
+      if (a === '') return -1;
+      if (b === '') return 1;
+      return a.localeCompare(b);
+    });
+
     var h='';
-    posts.forEach(function(p){
-      h += '<div class="item'+(current===p.path?' on':'')+'" data-p="'+esc(p.path)+'">'+
-           '<span class="t">'+esc(p.title)+(p.draft?' · 草稿':'')+'</span>'+
-           '<span class="m">'+esc(p.date)+'</span></div>';
+    keys.forEach(function(d){
+      if (d) {
+        h += '<div class="folder'+(currentDir===d?' on':'')+'" data-d="'+esc(d)+'">'+
+             '<span>📁 '+esc(d)+'</span><span class="m">'+groups[d].length+' 篇</span></div>';
+      }
+      groups[d].forEach(function(p){
+        h += '<div class="item'+(current===p.path?' on':'')+'" data-p="'+esc(p.path)+'">'+
+             '<span class="t">'+esc(p.title)+(p.draft?' · 草稿':'')+'</span>'+
+             '<span class="m">'+esc(p.date)+'</span></div>';
+      });
     });
     if(!posts.length){h='<div style="color:#6b7488;font-size:13px;padding:10px">还没有文章</div>';}
     var el=document.getElementById('list');
     el.innerHTML=h;
-    Array.prototype.forEach.call(el.querySelectorAll('.item'),function(n){
-      n.addEventListener('click',function(){openPost(n.getAttribute('data-p'));});
+    Array.prototype.forEach.call(el.querySelectorAll('.item'),function(node){
+      node.addEventListener('click',function(){openPost(node.getAttribute('data-p'));});
+    });
+    Array.prototype.forEach.call(el.querySelectorAll('.folder'),function(node){
+      node.addEventListener('click',function(){
+        currentDir = node.getAttribute('data-d');
+        toast('新建文章将放在：' + currentDir);
+        load();
+      });
     });
   }).catch(function(e){toast('加载失败');});
+}
+
+function newFolder(){
+  var d = prompt('新建文件夹（用 / 分层，如 技术/网络）：','');
+  if (d === null) return;
+  d = d.trim();
+  if (!d) { toast('名称不能为空'); return; }
+  post({action:'mkdir',dir:d}).then(function(j){
+    if (j.ok) { toast('已创建，约 30 秒后生效'); currentDir = j.dir || d; load(); }
+    else toast(j.error || '创建失败');
+  });
 }
 
 function openPost(path){
@@ -378,6 +455,9 @@ function openPost(path){
     var parts = path.split('/');
     var file = parts[parts.length-1].replace(/\\.md$/,'');
     document.getElementById('f-slug').value = file;
+    var dirPart = parts.slice(0, parts.length - 1).join('/').replace(/^content\/posts\/?/, '');
+    var dirEl = document.getElementById('f-dir');
+    if (dirEl) dirEl.value = dirPart;
     var d = (m.date||'').slice(0,10);
     document.getElementById('f-date').value = d || new Date().toISOString().slice(0,10);
     document.getElementById('f-tags').value = (m.tags||'').replace(/^\\[|\\]$/g,'');
@@ -405,6 +485,8 @@ function newPost(){
   document.getElementById('f-cats').value='';
   document.getElementById('f-draft').checked=false;
   document.getElementById('f-body').value='';
+  var dirEl = document.getElementById('f-dir');
+  if (dirEl) dirEl.value = currentDir || '';
   document.getElementById('editor').classList.remove('hidden');
   document.getElementById('empty').classList.add('hidden');
   refreshListSelection();
@@ -419,10 +501,12 @@ function save(){
   var cats = document.getElementById('f-cats').value;
   var draft = document.getElementById('f-draft').checked;
   var body = document.getElementById('f-body').value;
+  var dirEl = document.getElementById('f-dir');
+  var dir = dirEl ? dirEl.value : '';
   if(!title){toast('标题不能为空');return;}
   if(!slug){toast('路径不能为空');return;}
   document.getElementById('msg').textContent='保存中…';
-  post({action:'save',title:title,slug:slug,date:date,tags:tags,categories:cats,draft:draft,body:body,path:current})
+  post({action:'save',title:title,slug:slug,date:date,tags:tags,categories:cats,draft:draft,body:body,path:current,dir:dir})
     .then(function(j){
       document.getElementById('msg').textContent='';
       if(j.ok){toast('已保存，约 30 秒后上线');current=j.path;load();}
@@ -493,24 +577,56 @@ export async function onRequest(ctx) {
 
       if (apiName === 'list') {
         try {
-          const dir = await ghGet(cfg, POSTS_DIR);
-          const files = Array.isArray(dir) ? dir.filter(f => f.name.endsWith('.md')) : [];
+          // 递归列出 content/posts 下所有文件
+          const treeUrl = 'https://api.github.com/repos/' + cfg.repo + '/git/trees/' + cfg.branch + '?recursive=1';
+          const tr = await fetch(treeUrl, { headers: ghHeaders(cfg.token) });
+          if (!tr.ok) throw new Error('读取文件树失败 ' + tr.status);
+          const tj = await tr.json();
+          const blobs = (tj.tree || []).filter(x => x.type === 'blob');
+
+          const prefix = POSTS_DIR + '/';
+          const mdFiles = blobs.filter(x => x.path.startsWith(prefix) && x.path.endsWith('.md') && !x.path.endsWith('/_index.md'));
+          const idxFiles = blobs.filter(x => x.path.startsWith(prefix) && x.path.endsWith('/_index.md'));
+
+          // 目录标题（来自 _index.md）
+          const folderTitles = {};
+          for (const f of idxFiles.slice(0, 60)) {
+            const d = f.path.slice(prefix.length, f.path.length - '/_index.md'.length);
+            folderTitles[d] = d;
+            try {
+              const rec = await ghGet(cfg, f.path);
+              const { meta } = parseFrontMatter(rec ? b64decodeUtf8(rec.content) : '');
+              if (meta.title) folderTitles[d] = String(meta.title);
+            } catch (e) { /* 忽略 */ }
+          }
+
           const posts = [];
-          for (const f of files.slice(0, 200)) {
+          for (const f of mdFiles.slice(0, 300)) {
             try {
               const rec = await ghGet(cfg, f.path);
               const text = rec ? b64decodeUtf8(rec.content) : '';
               const { meta } = parseFrontMatter(text);
+              const rel = f.path.slice(prefix.length);
+              const cut = rel.lastIndexOf('/');
+              const dir = cut >= 0 ? rel.slice(0, cut) : '';
               posts.push({
                 path: f.path,
-                title: meta.title || f.name,
+                dir: dir,
+                title: meta.title || f.path.split('/').pop(),
                 date: (meta.date || '').slice(0, 10),
                 draft: String(meta.draft) === 'true',
               });
             } catch (e) { /* 跳过坏文件 */ }
           }
           posts.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-          return json({ ok: true, posts });
+
+          // 目录集合
+          const dirSet = {};
+          Object.keys(folderTitles).forEach(d => { dirSet[d] = folderTitles[d]; });
+          posts.forEach(p => { if (p.dir) dirSet[p.dir] = folderTitles[p.dir] || p.dir; });
+          const folders = Object.keys(dirSet).sort().map(d => ({ path: d, title: dirSet[d] }));
+
+          return json({ ok: true, posts, folders });
         } catch (e) {
           return json({ ok: false, error: String(e.message || e) }, 500);
         }
@@ -590,7 +706,9 @@ export async function onRequest(ctx) {
         const body = String(data.body || '');
 
         let date = dateStr;
-        let newPath = `${POSTS_DIR}/${slug}.md`;
+        const dir = sanitizeDir(data.dir);
+        if (dir) await ensureIndexes(cfg, dir);
+        const newPath = POSTS_DIR + '/' + (dir ? dir + '/' : '') + slug + '.md';
 
         // 如果改了路径，删掉旧文件
         const oldPath = String(data.path || '');
@@ -611,6 +729,14 @@ export async function onRequest(ctx) {
 
         const deployed = await triggerDeploy(cfg);
         return json({ ok: true, path: newPath, deploy: deployed });
+      }
+
+      if (action === 'mkdir') {
+        const dir = sanitizeDir(data.dir);
+        if (!dir) return json({ ok: false, error: '目录名不能为空' }, 400);
+        await ensureIndexes(cfg, dir);
+        const deployed = await triggerDeploy(cfg);
+        return json({ ok: true, dir: dir, deploy: deployed });
       }
 
       if (action === 'delete') {
