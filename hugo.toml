@@ -45,8 +45,10 @@ googleAnalytics = ""
   Content = "pelakai@mail.tszheoi-law.top"
 
 [params.assets]
-  favicon = ""
-
+  favicon = "/favicon.ico"
+favicon_32x32 = "/favicon-32.png"
+favicon_16x16 = "/favicon-16.png"
+apple_touch_icon = "/apple-touch-icon.png"
 [params.profileMode]
   enabled = false
 
