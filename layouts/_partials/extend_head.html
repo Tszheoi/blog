@@ -1,0 +1,56 @@
+{{- /* 由 Tsz 定制：文件夹上下文 + 面包屑精简 + 列表按文件夹过滤 */ -}}
+<script>
+(function () {
+  var path = location.pathname;
+  var m = path.match(/^\/posts\/([^\/]+)\//);
+  var folder = m ? m[1] : null;
+  var q = new URLSearchParams(location.search);
+  var scope = q.get('f') || folder;
+
+  function hideCrumbs() {
+    if (!m) return;
+    var cr = document.querySelectorAll('.breadcrumbs, #breadcrumbs');
+    for (var i = 0; i < cr.length; i++) cr[i].style.display = 'none';
+  }
+
+  function rewriteMenu() {
+    if (!m) return;
+    var links = document.querySelectorAll('a[href]');
+    for (var i = 0; i < links.length; i++) {
+      var a = links[i];
+      var href = a.getAttribute('href') || '';
+      if (!/^\/(posts|tags|archives)\/?$/.test(href)) continue;
+      a.setAttribute('href', href + (href.indexOf('?') >= 0 ? '&' : '?') + 'f=' + m);
+    }
+  }
+
+  function filterList() {
+    if (!scope) return;
+    if (!/^\/(posts|tags|archives)/.test(path)) return;
+    var items = document.querySelectorAll('article.post-entry, article.archive-entry, .archive-entry, li');
+    for (var i = 0; i < items.length; i++) {
+      var el = items[i];
+      var a = el.querySelector('a[href*="/posts/"]');
+      if (!a) continue;
+      var href = a.getAttribute('href') || '';
+      if (href.indexOf('/posts/' + scope + '/') < 0) el.style.display = 'none';
+    }
+    var bar = document.createElement('div');
+    bar.className = 'folder-scope-bar';
+    bar.innerHTML = '当前只显示文件夹：<b>' + decodeURIComponent(scope) + '</b> · <a href="' + path + '">显示全部</a>';
+    var main = document.querySelector('main.main');
+    if (main) main.insertBefore(bar, main.firstChild);
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    hideCrumbs();
+    rewriteMenu();
+    filterList();
+  });
+})();
+</script>
+<style>
+.breadcrumbs, #breadcrumbs { display: none; }
+.folder-scope-bar { margin: 10px 0 18px; padding: 8px 14px; border-radius: 10px; background: var(--entry); border: 1px solid var(--border); font-size: 13px; color: var(--secondary); }
+.folder-scope-bar a { color: var(--primary); }
+</style>
