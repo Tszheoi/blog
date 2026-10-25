@@ -455,7 +455,7 @@ function openPost(path){
     var parts = path.split('/');
     var file = parts[parts.length-1].replace(/\\.md$/,'');
     document.getElementById('f-slug').value = file;
-    var dirPart = parts.slice(0, parts.length - 1).join('/').replace(/^content\/posts\/?/, '');
+    var dirPart = parts.slice(0, parts.length - 1).join('/').replace(/^content\\/posts\\/?/, '');
     var dirEl = document.getElementById('f-dir');
     if (dirEl) dirEl.value = dirPart;
     var d = (m.date||'').slice(0,10);
