@@ -80,3 +80,4 @@ apple_touch_icon = "/apple-touch-icon.png"
 
 [outputs]
   home = ["HTML", "RSS", "JSON"]
+section = ["HTML", "RSS", "JSON"]
