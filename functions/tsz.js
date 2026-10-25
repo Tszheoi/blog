@@ -442,6 +442,8 @@ function load(){
     if (dl) { dl.innerHTML = folders.map(function(f){ return '<option value="'+esc(f.path)+'">'; }).join(''); }
 
     var groups = {};
+    // 先放入所有已有文件夹（含空文件夹），再挂上文章
+    folders.forEach(function(f){ if (f && f.path) groups[f.path] = groups[f.path] || []; });
     posts.forEach(function(p){ var d = p.dir || ''; (groups[d] = groups[d] || []).push(p); });
     var keys = Object.keys(groups).sort(function(a,b){
       if (a === '') return -1;
