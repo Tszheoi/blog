@@ -281,6 +281,11 @@ input[type=text]:focus,input[type=date]:focus,textarea:focus{border-color:#3b82f
 .err{color:#fca5a5;font-size:13px;margin-top:8px}
 .hidden{display:none!important}
 .split{display:flex;gap:8px;flex-wrap:wrap}
+
+.mask{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:99}
+.dlg{background:#151a23;border:1px solid #252c3a;border-radius:14px;padding:18px;width:min(440px,90vw)}
+.dlg h3{margin:0 0 12px;font-size:16px;color:#e6e8ee}
+.dlg .row{justify-content:flex-end;margin-top:14px}
 `;
 
 const LOGIN_HTML = (err) => `<!DOCTYPE html><html lang="zh-CN"><head>
@@ -387,6 +392,43 @@ function post(data){return fetch('/tsz',{method:'POST',headers:{'content-type':'
 
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
+function ask(title, placeholder, value){
+  return new Promise(function(resolve){
+    var mask=document.createElement('div'); mask.className='mask';
+    var box=document.createElement('div'); box.className='dlg';
+    var h=document.createElement('h3'); h.textContent=title||'输入';
+    var inp=document.createElement('input'); inp.className='inp'; inp.placeholder=placeholder||''; inp.value=value||'';
+    var row=document.createElement('div'); row.className='row';
+    var no=document.createElement('button'); no.className='btn ghost'; no.textContent='取消';
+    var ok=document.createElement('button'); ok.className='btn'; ok.textContent='确定';
+    function close(v){ if(mask.parentNode) mask.parentNode.removeChild(mask); resolve(v); }
+    ok.onclick=function(){ close(inp.value); };
+    no.onclick=function(){ close(null); };
+    inp.onkeydown=function(e){ if(e.key==='Enter'){ close(inp.value); } if(e.key==='Escape'){ close(null); } };
+    row.appendChild(no); row.appendChild(ok);
+    box.appendChild(h); box.appendChild(inp); box.appendChild(row);
+    mask.appendChild(box); document.body.appendChild(mask);
+    setTimeout(function(){ inp.focus(); }, 30);
+  });
+}
+
+function askConfirm(title){
+  return new Promise(function(resolve){
+    var mask=document.createElement('div'); mask.className='mask';
+    var box=document.createElement('div'); box.className='dlg';
+    var h=document.createElement('h3'); h.textContent=title||'确定？';
+    var row=document.createElement('div'); row.className='row';
+    var no=document.createElement('button'); no.className='btn ghost'; no.textContent='取消';
+    var ok=document.createElement('button'); ok.className='btn danger'; ok.textContent='确定';
+    function close(v){ if(mask.parentNode) mask.parentNode.removeChild(mask); resolve(v); }
+    ok.onclick=function(){ close(true); };
+    no.onclick=function(){ close(false); };
+    row.appendChild(no); row.appendChild(ok);
+    box.appendChild(h); box.appendChild(row);
+    mask.appendChild(box); document.body.appendChild(mask);
+  });
+}
+
 var folders = [];
 var currentDir = '';
 
@@ -436,13 +478,14 @@ function load(){
 }
 
 function newFolder(){
-  var d = prompt('新建文件夹（用 / 分层，如 技术/网络）：','');
-  if (d === null) return;
-  d = d.trim();
-  if (!d) { toast('名称不能为空'); return; }
-  post({action:'mkdir',dir:d}).then(function(j){
-    if (j.ok) { toast('已创建，约 30 秒后生效'); currentDir = j.dir || d; load(); }
-    else toast(j.error || '创建失败');
+  ask('新建文件夹','用 / 分层，如 技术/网络','').then(function(d){
+    if (d === null) return;
+    d = String(d).trim();
+    if (!d) { toast('名称不能为空'); return; }
+    post({action:'mkdir',dir:d}).then(function(j){
+      if (j.ok) { toast('已创建，约 30 秒后生效'); currentDir = j.dir || d; load(); }
+      else toast(j.error || '创建失败');
+    });
   });
 }
 
@@ -516,13 +559,15 @@ function save(){
 
 function del(){
   if(!current){toast('先选一篇文章');return;}
-  if(!confirm('确定删除这篇？'))return;
-  post({action:'delete',path:current}).then(function(j){
+  askConfirm('确定删除这篇？').then(function(yes){
+    if(!yes) return;
+    post({action:'delete',path:current}).then(function(j){
     if(j.ok){toast('已删除');current=null;
       document.getElementById('editor').classList.add('hidden');
       document.getElementById('empty').classList.remove('hidden');
       load();}
     else toast(j.error||'删除失败');
+    });
   });
 }
 
